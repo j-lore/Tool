@@ -1,13 +1,13 @@
-import imageio
+from PIL import Image
+import numpy as np
 
-img1 = imageio.imread('image1.tif')
-img2 = imageio.imread('image2.tif')
+def load_tif_as_gray(path):
+    img = Image.open(path).convert('L')  # Convert to grayscale
+    return np.array(img, dtype=np.float32)
 
-# If they're RGB, convert to grayscale
-if img1.ndim == 3:
-    img1 = np.dot(img1[...,:3], [0.299, 0.587, 0.114])
-if img2.ndim == 3:
-    img2 = np.dot(img2[...,:3], [0.299, 0.587, 0.114])
+# Load images
+img1 = load_tif_as_gray('image1.tif')
+img2 = load_tif_as_gray('image2.tif')
 
 
 
