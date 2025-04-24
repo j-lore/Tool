@@ -1,9 +1,57 @@
 from PIL import Image
 import numpy as np
+from scipy.fft import fft2, ifft2, fftshift, ifftshift
+import matplotlib.pyplot as plt
 
+# --- Step 1: Load .tif image and convert to grayscale numpy array ---
 def load_tif_as_gray(path):
-    img = Image.open(path).convert('L')  # Convert to grayscale
+    img = Image.open(path).convert('L')  # 'L' mode = grayscale
     return np.array(img, dtype=np.float32)
+
+# --- Step 2: Define the contrast sensitivity function (CSF) ---
+def csf(fx, fy):
+    f = np.sqrt(fx**2 + fy**2)
+    return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
+
+# --- Step 3: Apply the CSF in frequency domain ---
+def apply_csf(image, pixels_per_degree):
+    height, width = image.shape
+    fx = np.fft.fftfreq(width, d=1/pixels_per_degree)
+    fy = np.fft.fftfreq(height, d=1/pixels_per_degree)
+    FX, FY = np.meshgrid(fx, fy)
+    csf_filter = csf(FX, FY)
+
+    image_fft = fftshift(fft2(image))
+    filtered_fft = image_fft * csf_filter
+    filtered_image = np.real(ifft2(ifftshift(filtered_fft)))
+    return filtered_image
+
+# --- Step 4: Compute perceptual difference using SSO model ---
+def sso_jnd(image1, image2, pixels_per_degree=60, minkowski_order=4):
+    filtered1 = apply_csf(image1, pixels_per_degree)
+    filtered2 = apply_csf(image2, pixels_per_degree)
+    diff = np.abs(filtered1 - filtered2)
+    jnd = np.power(np.mean(np.power(diff, minkowski_order)), 1/minkowski_order)
+    return diff, jnd
+
+# --- Step 5: Load two .tif images ---
+img1 = load_tif_as_gray('image1.tif')
+img2 = load_tif_as_gray('image2.tif')
+
+if img1.shape != img2.shape:
+    raise ValueError("The two images must have the same dimensions!")
+
+# --- Step 6: Run the SSO model ---
+diff_map, jnd_value = sso_jnd(img1, img2)
+
+# --- Step 7: Visualize the perceptual difference ---
+plt.figure(figsize=(8, 6))
+plt.imshow(diff_map, cmap='hot')
+plt.title(f'Spatial Standard Observer Difference\nJND Value: {jnd_value:.4f}')
+plt.colorbar(label='Perceptual Difference')
+plt.axis('off')
+plt.show()
+######################
 
 # Load images
 img1 = load_tif_as_gray('image1.tif')
