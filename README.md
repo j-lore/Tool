@@ -1,3 +1,17 @@
+import imageio
+
+img1 = imageio.imread('image1.tif')
+img2 = imageio.imread('image2.tif')
+
+# If they're RGB, convert to grayscale
+if img1.ndim == 3:
+    img1 = np.dot(img1[...,:3], [0.299, 0.587, 0.114])
+if img2.ndim == 3:
+    img2 = np.dot(img2[...,:3], [0.299, 0.587, 0.114])
+
+
+
+
 import numpy as np
 import cv2
 from scipy.fftpack import fft2, ifft2, fftshift
